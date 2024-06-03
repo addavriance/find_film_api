@@ -55,10 +55,7 @@ async def search_movie(query: QueryModel):
     answer = response.choices[0].message.content.replace('\x00', '')
 
     try:
-        result = fjson.loads(answer)
-        return result
-    except JSONDecodeError:
-        try:
+        if len(answer) == 1:
             error_code = int(answer)
 
             if error_code == 0:
@@ -67,5 +64,13 @@ async def search_movie(query: QueryModel):
                 raise HTTPException(status_code=406, detail="Bad query.")
             elif error_code == 2:
                 raise HTTPException(status_code=406, detail="Insufficient data in query.")
-        except:
-            raise HTTPException(status_code=500, detail=f"Unknown error.")
+        else:
+            result = fjson.loads(answer)
+
+            if result["film-name"] is None:
+                raise HTTPException(status_code=406, detail="Bad query.")
+
+            return result
+
+    except JSONDecodeError:
+        raise HTTPException(status_code=500, detail=f"Unknown error.")
