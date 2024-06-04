@@ -11,7 +11,7 @@ from json import JSONDecodeError
 
 from src.swears import SFilter
 from src.utils import has_swear
-from src.constants import get_prompt, MAX_QUERY_LEN
+from src.constants import get_prompt, MAX_QUERY_LEN, MIN_QUERY_LEN
 
 
 class QueryModel(BaseModel):
@@ -27,6 +27,9 @@ sf = SFilter()
 @router.post("/search")
 async def search_movie(query: QueryModel):
     query_text = query.query
+
+    if len(query_text) < MIN_QUERY_LEN:
+        raise HTTPException(status_code=400, detail="Query too short.")
 
     if len(query_text) > MAX_QUERY_LEN:
         raise HTTPException(status_code=413, detail="Query too long.")

@@ -23,3 +23,5 @@ def get_prompt(query: str) -> str:
 
 
 MAX_QUERY_LEN = 250
+
+MIN_QUERY_LEN = 10
