@@ -3,6 +3,7 @@ from fastapi import APIRouter, HTTPException, Request
 from requests.exceptions import ChunkedEncodingError
 
 from src.models.hugging_face.chat import Client
+from src.models.kinopoisk.search import Search
 import fuzzy_json as fjson
 from json import JSONDecodeError
 
@@ -16,6 +17,8 @@ class QueryModel(BaseModel):
 
 
 client = Client()
+search = Search()
+
 router = APIRouter()
 
 sf = SFilter()
@@ -67,6 +70,8 @@ async def search_movie(request: Request, query: QueryModel):
 
             if result["fn"] is None or result["fd"] is None:
                 raise HTTPException(status_code=404, detail="Film not found.")
+
+            result = search.get_film_data(result["fn"])
 
             return result
 
