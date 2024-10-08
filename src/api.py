@@ -1,16 +1,13 @@
-import asyncio
-
 from pydantic import BaseModel
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
+from requests.exceptions import ChunkedEncodingError
 
-from g4f.client import Client
-from g4f.Provider import HuggingChat
-
+from src.models.hugging_face.chat import Client
 import fuzzy_json as fjson
 from json import JSONDecodeError
 
 from src.swears import SFilter
-from src.utils import has_swear
+from src.utils import has_swear, get_enclosed_json
 from src.constants import get_prompt, MAX_QUERY_LEN, MIN_QUERY_LEN
 
 
@@ -25,8 +22,10 @@ sf = SFilter()
 
 
 @router.post("/search")
-async def search_movie(query: QueryModel):
+async def search_movie(request: Request, query: QueryModel):
     query_text = query.query
+
+    country = request.headers["Country"] if "Country" in request.headers else "US"
 
     if len(query_text) < MIN_QUERY_LEN:
         raise HTTPException(status_code=400, detail="Query too short.")
@@ -37,25 +36,20 @@ async def search_movie(query: QueryModel):
     if has_swear(sf, query_text):
         raise HTTPException(status_code=406, detail="Bad query.")
 
-    prompt = get_prompt(query_text)
+    prompt = get_prompt(query_text, country)
 
-    response = await asyncio.to_thread(
-        client.chat.completions.create,
-        model="command-r+",
-        messages=[{"role": "user", "content": prompt}],
-        provider=HuggingChat,
-        stream=False,
-        proxy=None,
-        response_format=None,
-        max_tokens=None,
-        stop=None,
-        api_key=None,
-        ignored=None,
-        ignore_working=False,
-        ignore_stream=False
-    )
+    dialogue = client.create_dialogue()
 
-    answer = response.choices[0].message.content.replace('\x00', '')
+    print(dialogue)
+
+    cID = dialogue['conversationId']
+
+    try:
+        answer = client.send_message(cID, prompt)
+    except ChunkedEncodingError:
+        answer = client.get_answer_from_title(cID)
+
+    client.delete_dialogue(cID)
 
     try:
         if len(answer) == 1:
@@ -68,10 +62,11 @@ async def search_movie(query: QueryModel):
             elif error_code == 2:
                 raise HTTPException(status_code=406, detail="Insufficient data in query.")
         else:
-            result = fjson.loads(answer)
+            raw_json = get_enclosed_json(answer)
+            result = fjson.loads(raw_json)
 
-            if result["film-name"] is None:
-                raise HTTPException(status_code=406, detail="Bad query.")
+            if result["fn"] is None or result["fd"] is None:
+                raise HTTPException(status_code=404, detail="Film not found.")
 
             return result
 
