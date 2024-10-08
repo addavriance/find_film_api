@@ -49,48 +49,10 @@ class SFilter:
             "мандовошка"
         ]
 
-        self.letter_map = {
-            'а': r'[аa4]',
-            'б': r'[бb6п]',
-            'в': r'[вvb]',
-            'г': r'[гg]',
-            'д': r'[дd]',
-            'е': r'[еeё3и1]',
-            'ё': r'[ёe3]',
-            'ж': r'[ж*]',
-            'з': r'[з3z]',
-            'и': r'[иi1!]',
-            'й': r'[йi1!]',
-            'к': r'[кk]',
-            'л': r'[лl!^|1]',
-            'м': r'[мm]',
-            'н': r'[нnh]',
-            'о': r'[оo0]',
-            'п': r'[пnp]',
-            'р': r'[рpr]',
-            'с': r'[сcs]',
-            'т': r'[тt]',
-            'у': r'[уyu]',
-            'ф': r'[фf]',
-            'х': r'[хx]',
-            'ц': r'[цu]',
-            'ч': r'[ч4]',
-            'ш': r'[шw]',
-            'щ': r'[щw]',
-            'ь': r'[ьb]',
-            'ы': r'[ыbl]',
-            'э': r'[э3]',
-            'ю': r'[юu]',
-            'я': r'[яr]'
-        }
-
     def regex_check(self, text):
         cleared_text = self._clear(text.lower())
 
-        if re.findall(self.pattern, cleared_text):
-            return True
-
-        return self._advanced_check(cleared_text)
+        return re.findall(self.pattern, cleared_text)
 
     def fuzzy_check(self, text):
         cleared_text = self._clear(text.lower())
@@ -100,16 +62,6 @@ class SFilter:
                 if ratio >= 80:
                     return True
         return False
-
-    def _convert_to_regex(self, word):
-        regex_word = r'\b'
-        for char in word:
-            if char in self.letter_map:
-                regex_word += self.letter_map[char]
-            else:
-                regex_word += char
-        regex_word += r'*'
-        return regex_word
 
     def neural_check(self, text):
         cleared_text = self._clear(text.lower())
@@ -121,13 +73,6 @@ class SFilter:
         return percentage > 50
 
         # return percentage
-
-    def _advanced_check(self, text):
-        for exact_word in self.exact_patterns:
-            regex_pattern = self._convert_to_regex(exact_word)
-            if re.findall(regex_pattern, text):
-                return True
-        return False
 
     def _clear(self, text):
 
@@ -147,7 +92,7 @@ if __name__ == "__main__":
     sf = SFilter()
 
     ptexts = [
-        ""
+        "традиция"
     ]
 
     for ptext in ptexts:
